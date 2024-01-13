@@ -117,6 +117,7 @@ type DERPConfig struct {
 	ServerRegionID   int
 	ServerRegionCode string
 	ServerRegionName string
+	DerpPort         int
 	STUNAddr         string
 	URLs             []url.URL
 	Paths            []string
@@ -290,6 +291,7 @@ func GetDERPConfig() DERPConfig {
 	serverRegionID := viper.GetInt("derp.server.region_id")
 	serverRegionCode := viper.GetString("derp.server.region_code")
 	serverRegionName := viper.GetString("derp.server.region_name")
+	derpPort := viper.GetInt("derp.server.derp_port")
 	stunAddr := viper.GetString("derp.server.stun_listen_addr")
 
 	if serverEnabled && stunAddr == "" {
@@ -322,6 +324,7 @@ func GetDERPConfig() DERPConfig {
 		ServerRegionID:   serverRegionID,
 		ServerRegionCode: serverRegionCode,
 		ServerRegionName: serverRegionName,
+		DerpPort:         derpPort,
 		STUNAddr:         stunAddr,
 		URLs:             urls,
 		Paths:            paths,
@@ -545,15 +548,13 @@ func GetHeadscaleConfig() (*Config, error) {
 	prefixes := make([]netip.Prefix, 0, len(parsedPrefixes))
 	{
 		// dedup
-		normalizedPrefixes := make(map[string]int, len(parsedPrefixes))
-		for i, p := range parsedPrefixes {
+		usedPrefixes := make(map[string]struct{}, len(parsedPrefixes))
+		for _, p := range parsedPrefixes {
 			normalized, _ := netipx.RangeOfPrefix(p).Prefix()
-			normalizedPrefixes[normalized.String()] = i
-		}
-
-		// convert back to list
-		for _, i := range normalizedPrefixes {
-			prefixes = append(prefixes, parsedPrefixes[i])
+			if _, ok := usedPrefixes[normalized.String()]; !ok {
+				usedPrefixes[normalized.String()] = struct{}{}
+				prefixes = append(prefixes, p)
+			}
 		}
 	}
 

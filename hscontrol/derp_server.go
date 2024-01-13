@@ -33,6 +33,7 @@ type DERPServer struct {
 func (h *Headscale) NewDERPServer() (*DERPServer, error) {
 	log.Trace().Caller().Msg("Creating new embedded DERP server")
 	server := derp.NewServer(key.NodePrivate(*h.privateKey), log.Info().Msgf)
+	server.SetVerifyClient(true)
 	region, err := h.generateRegionLocalDERP()
 	if err != nil {
 		return nil, err
@@ -63,6 +64,9 @@ func (h *Headscale) generateRegionLocalDERP() (tailcfg.DERPRegion, error) {
 			return tailcfg.DERPRegion{}, err
 		}
 	}
+	if h.cfg.DERP.DerpPort != 0 {
+		port = h.cfg.DERP.DerpPort
+	}
 
 	localDERPregion := tailcfg.DERPRegion{
 		RegionID:   h.cfg.DERP.ServerRegionID,
@@ -71,10 +75,11 @@ func (h *Headscale) generateRegionLocalDERP() (tailcfg.DERPRegion, error) {
 		Avoid:      false,
 		Nodes: []*tailcfg.DERPNode{
 			{
-				Name:     fmt.Sprintf("%d", h.cfg.DERP.ServerRegionID),
-				RegionID: h.cfg.DERP.ServerRegionID,
-				HostName: host,
-				DERPPort: port,
+				Name:             fmt.Sprintf("%d", h.cfg.DERP.ServerRegionID),
+				RegionID:         h.cfg.DERP.ServerRegionID,
+				HostName:         host,
+				DERPPort:         port,
+				InsecureForTests: true,
 			},
 		},
 	}

@@ -89,6 +89,16 @@ derp:
     region_code: "headscale"
     region_name: "Headscale Embedded DERP"
 
+    # The port of the embedded DERP server that clients will connect to.
+    # If not set, the port of the headscale server_url will be used.
+    #
+    # This option is useful when headscale is running behind a reverse proxy.
+    # The port requires TLS enabled and must be accessible by the clients.
+    #
+    # Note that the embedded DERP server will always listen on the port of the
+    # headscale listen_addr no matter what this option is set to.
+    derp_port: 8081
+
     # Listens over UDP at the configured address for STUN connections - to help with NAT traversal.
     # When the embedded DERP server is enabled stun_listen_addr MUST be defined.
     #
