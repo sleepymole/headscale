@@ -39,6 +39,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	zl "github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/soheilhy/cmux"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
@@ -682,18 +683,21 @@ func (h *Headscale) Serve() error {
 		WriteTimeout: types.HTTPTimeout,
 	}
 
-	var httpListener net.Listener
-	if tlsConfig != nil {
-		httpServer.TLSConfig = tlsConfig
-		httpListener, err = tls.Listen("tcp", h.cfg.Addr, tlsConfig)
-	} else {
-		httpListener, err = net.Listen("tcp", h.cfg.Addr)
-	}
+	l, err := net.Listen("tcp", h.cfg.Addr)
 	if err != nil {
 		return fmt.Errorf("failed to bind to TCP address: %w", err)
 	}
 
+	m := cmux.New(l)
+	m.SetReadTimeout(types.HTTPTimeout)
+	errorGroup.Go(m.Serve)
+
+	httpListener := m.Match(cmux.HTTP1Fast())
 	errorGroup.Go(func() error { return httpServer.Serve(httpListener) })
+	if tlsConfig != nil {
+		httpsListener := tls.NewListener(m.Match(cmux.TLS()), tlsConfig)
+		errorGroup.Go(func() error { return httpServer.Serve(httpsListener) })
+	}
 
 	log.Info().
 		Msgf("listening and serving HTTP on: %s", h.cfg.Addr)

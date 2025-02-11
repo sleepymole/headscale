@@ -41,6 +41,7 @@ func NewDERPServer(
 ) (*DERPServer, error) {
 	log.Trace().Caller().Msg("Creating new embedded DERP server")
 	server := derp.NewServer(derpKey, util.TSLogfWrapper()) // nolint // zerolinter complains
+	server.SetVerifyClient(true)
 
 	return &DERPServer{
 		serverURL:     serverURL,
@@ -80,12 +81,13 @@ func (d *DERPServer) GenerateRegion() (tailcfg.DERPRegion, error) {
 		Avoid:      false,
 		Nodes: []*tailcfg.DERPNode{
 			{
-				Name:     fmt.Sprintf("%d", d.cfg.ServerRegionID),
-				RegionID: d.cfg.ServerRegionID,
-				HostName: host,
-				DERPPort: port,
-				IPv4:     d.cfg.IPv4,
-				IPv6:     d.cfg.IPv6,
+				Name:             fmt.Sprintf("%d", d.cfg.ServerRegionID),
+				RegionID:         d.cfg.ServerRegionID,
+				HostName:         host,
+				DERPPort:         port,
+				IPv4:             d.cfg.IPv4,
+				IPv6:             d.cfg.IPv6,
+				InsecureForTests: true,
 			},
 		},
 	}
